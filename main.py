@@ -34,18 +34,53 @@ def get_surroundings(environment, x, y, len_x, len_y):
 
     surroundings = [environment[y-1][x-1], environment[y-1][x], "", environment[y][x-1], "", "", "", ""]
 
-    surroundings[2] = environment[y-1][x+1] if x < len_x else environment[y-1][0]
+    surroundings[2] = environment[y-1][x+1] if x < len_x-1 else environment[y-1][0]
 
-    surroundings[4] = environment[y][x+1] if x < len_x else environment[y][0]
+    surroundings[4] = environment[y][x+1] if x < len_x-1 else environment[y][0]
 
-    surroundings[5] = environment[y+1][x-1] if y < len_y else environment[0][x-1]
-    surroundings[6] = environment[y+1][x] if y < len_y else environment[0][x]
+    surroundings[5] = environment[y+1][x-1] if y < len_y-1 else environment[0][x-1]
+    surroundings[6] = environment[y+1][x] if y < len_y-1 else environment[0][x]
 
-    s_y = y+1 if y < len_y else 0
-    s_x = x+1 if x < len_x else 0
+    s_y = y+1 if y < len_y-1 else 0
+    s_x = x+1 if x < len_x-1 else 0
     surroundings[7] = environment[s_y][s_x]
 
     return surroundings
+
+def move(environment, x, y, len_x, len_y, free_space):
+
+    options = ["environment[y-1][x-1]=item", "environment[y-1][x]=item", "", "environment[y][x-1]=item", "", "", "", ""]
+
+    options[2] = "environment[y-1][x+1]=item" if x < len_x-1 else "environment[y-1][0]=item"
+
+    options[4] = "environment[y][x+1]=item" if x < len_x-1 else "environment[y][0]=item"
+
+    options[5] = "environment[y+1][x-1]=item" if y < len_y-1 else "environment[0][x-1]=item"
+    options[6] = "environment[y+1][x]=item" if y < len_y-1 else "environment[0][x]=item"
+
+    s_y = "y+1" if y < len_y-1 else "0"
+    s_x = "x+1" if x < len_x-1 else "0"
+    options[7] = "environment[{}][{}]=item".format(s_y, s_x)
+
+    return options[int(random.choice(free_space))]
+
+def spawn(environment, x, y, len_x, len_y, free_space):    #  creates a custom list of options, then picks one based upon the available free space
+
+    options = ["environment[y-1][x-1]=cell('fish', '$', id, 10)", "environment[y-1][x]=cell('fish', '$', id, 10)", "", "environment[y][x-1]=cell('fish', '$', id, 10)", "", "", "", ""]
+
+    options[2] = "environment[y-1][x+1]=cell('fish', '$', id, 10)" if x < len_x-1 else "environment[y-1][0]=cell('fish', '$', id, 10)"
+
+    options[4] = "environment[y][x+1]=cell('fish', '$', id, 10)" if x < len_x-1 else "environment[y][0]=cell('fish', '$', id, 10)"
+
+    options[5] = "environment[y+1][x-1]=cell('fish', '$', id, 10)" if y < len_y-1 else "environment[0][x-1]=cell('fish', '$', id, 10)"
+    options[6] = "environment[y+1][x]=cell('fish', '$', id, 10)" if y < len_y-1 else "environment[0][x]=cell('fish', '$', id, 10)"
+
+    s_y = "y+1" if y < len_y-1 else "0"
+    s_x = "x+1" if x < len_x-1 else "0"
+    options[7] = "environment[{}][{}]=cell('fish', '$', id, 10)".format(s_y, s_x)
+
+    return options[int(random.choice(free_space))]
+
 
 def main_loop():
 
@@ -53,34 +88,12 @@ def main_loop():
 
     len_x, len_y = 10, 10
 
-    tick = 0.05
+    tick = 0.5
 
     background = "~"
     environment = [[background] * len_x for c in range(len_y)]    #  generate a 2d array
 
-    spawn = {    #  link surroundings indexes to environment for breeding
-    0:"environment[y+1][x-1]=cell('fish', '$', id, 10)",
-    1:"environment[y+1][x]=cell('fish', '$', id, 10)",
-    2:"environment[y+1][x+1]=cell('fish', '$', id, 10)",
-    3:"environment[y][x-1]=cell('fish', '$', id, 10)",
-    4:"environment[y][x+1]=cell('fish', '$', id, 10)",
-    5:"environment[y-1][x-1]=cell('fish', '$', id, 10)",
-    6:"environment[y-1][x]=cell('fish', '$', id, 10)",
-    7:"environment[y-1][x+1]=cell('fish', '$', id, 10)"
-    }
-
-    move = {    #  link surroundings indexes to environment for movement
-    0:"environment[y+1][x-1]=item",
-    1:"environment[y+1][x]=item",
-    2:"environment[y+1][x+1]=item",
-    3:"environment[y][x-1]=item",
-    4:"environment[y][x+1]=item",
-    5:"environment[y-1][x-1]=item",
-    6:"environment[y-1][x]=item",
-    7:"environment[y-1][x+1]=item"
-    }
-
-    for id in range(2):    #  generate some fish
+    for id in range(1):    #  generate some fish
         x, y = generate_coords(background, environment, len_x, len_y)
         environment[y][x] = cell("fish", "$", id, 10)
 
@@ -96,21 +109,21 @@ def main_loop():
                 if isinstance(item, cell) == True:
 
                     surroundings = get_surroundings(environment, x, y, len_x-1, len_y-1)
-                    free_space = [a for a, b in enumerate(surroundings) if b == background]
+                    free_space = [a for a, b in enumerate(surroundings) if b == background]    #  a space is considered 'free' if it is only occupied by a background tile
 
                     if item.symbol in surroundings:    #  breed
                         mate = surroundings[surroundings.index(item.symbol)]
 
                         if item.gender == "female" and mate.gender == "male" and free_space != [] and item.breed_time == 0 and mate.breed_time == 0:
 
-                            exec(spawn[free_space[0]])    #  spawn a new fish at the first free space
+                            exec(spawn(environment, x, y, len_x, len_y, free_space))    #  spawn a new fish at a random free space
 
                             item.breed_time = 11
-                            mate.breed_time = 11
+                            mate.breed_time = 10
 
                     elif free_space != []:
 
-                        exec(move[random.choice(free_space)])
+                        exec(move(environment, x, y, len_x, len_y, free_space))    #  move to a random free space
                         environment[y][x] = "~"
 
                     item.breed_time -= 1
