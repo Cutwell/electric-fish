@@ -33,6 +33,25 @@ def generate_coords(background, environment, len_x, len_y):    #  generate some 
         x, y = random.randint(0, len_x-1), random.randint(0, len_y-1)
     return x, y
 
+def interact_environment(string, environment, x, y, len_x, len_y, free_space):
+
+    #  string can take one of three forms: "environment[{}][{}]=item", "environment[{}][{}]=cell('prey', '$', id, 10)", environment[{}][{}]
+    #  interact_environment() will return a list, containing forms of the passed string with correct x&y modifiers added
+
+    output = [string]*8
+
+    output[0].format(y-1, x-1)     #  apply formatting to each string
+    output[1].format(y-1, x)
+    output[2].format(y-1, x+1) if x < len_x-1 else output[2].format(y-1, 0)
+    
+    output[3].format(y-1, x-1)
+    output[4].format(y-1, x-1)
+    
+    output[5].format(y-1, x-1)
+    output[6].format(y-1, x-1)
+    output[7].format(y-1, x-1)
+
+
 def get_surroundings(environment, x, y, len_x, len_y):
 
     surroundings = [environment[y-1][x-1], environment[y-1][x], "", environment[y][x-1], "", "", "", ""]
@@ -125,9 +144,8 @@ def main_loop():
                             mate = None
                             if any(isinstance(surround, cell) for surround in surroundings) == True:    #  check if there is an instance of the same class within the surrounding area
 
-                                for surround in surroundings:
-                                    if isinstance(surround, cell) == True:
-                                        mate = surround
+                                for surround in surroundings:    #  get the instance of the cell
+                                    mate = surround if isinstance(surround, cell) == True else None
 
                                 #  breed_time will get as low as 1, and only moves to 0 once a mate has been found
                                 item.breed_time = 0 if item.breed_time == 1 else item.breed_time
@@ -164,15 +182,14 @@ def main_loop():
                             if any(isinstance(surround, cell) for surround in surroundings) == True:    #  check if there is an instance of the same class within the surrounding area
 
                                 for surround in surroundings:
-                                    if isinstance(surround, cell) == True:
-                                        prey = surround
+                                    prey = surround if isinstance(surround, cell) == True else None
 
                                 if prey.species == "prey":
                                     
                                     exec(move(environment, x, y, len_x, len_y, free_space)[surroundings.index(prey)])
                                     environment[y][x] = "~"
 
-                                    item.hunger += 3
+                                    item.hunger += 5
 
                             if free_space != [] and prey == None:
 
@@ -202,3 +219,4 @@ def main_loop():
 
 if __name__ == "__main__":
     main_loop()
+
