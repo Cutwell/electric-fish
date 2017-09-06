@@ -33,25 +33,6 @@ def generate_coords(background, environment, len_x, len_y):    #  generate some 
         x, y = random.randint(0, len_x-1), random.randint(0, len_y-1)
     return x, y
 
-def interact_environment(string, environment, x, y, len_x, len_y, free_space):
-
-    #  string can take one of three forms: "environment[{}][{}]=item", "environment[{}][{}]=cell('prey', '$', id, 10)", environment[{}][{}]
-    #  interact_environment() will return a list, containing forms of the passed string with correct x&y modifiers added
-
-    output = [string]*8
-
-    output[0].format(y-1, x-1)     #  apply formatting to each string
-    output[1].format(y-1, x)
-    output[2].format(y-1, x+1) if x < len_x-1 else output[2].format(y-1, 0)
-    
-    output[3].format(y-1, x-1)
-    output[4].format(y-1, x-1)
-    
-    output[5].format(y-1, x-1)
-    output[6].format(y-1, x-1)
-    output[7].format(y-1, x-1)
-
-
 def get_surroundings(environment, x, y, len_x, len_y):
 
     surroundings = [environment[y-1][x-1], environment[y-1][x], "", environment[y][x-1], "", "", "", ""]
@@ -111,16 +92,15 @@ def main_loop():
     len_x, len_y = 10, 10
 
     tick = 0.5    #  the time waited between generations
-    frame_rate = 0.1    #  the time waited between updating the display
 
     background = "~"
     environment = [[background] * len_x for c in range(len_y)]    #  generate a 2d array
 
-    for id in range(2):    #  generate some prey
+    for id in range(20):    #  generate some prey
         x, y = generate_coords(background, environment, len_x, len_y)
         environment[y][x] = cell("prey", "$", id, 10)
 
-    for id in range(1):    #  generate some predators
+    for id in range(2):    #  generate some predators
         x, y = generate_coords(background, environment, len_x, len_y)
         environment[y][x] = cell("predator", "£", id, 10)
 
@@ -129,6 +109,10 @@ def main_loop():
         time.sleep(tick)
 
         x, y = 0, 0
+
+        prey_count = []
+        predator_count = []
+
         for row in environment:
 
             for item in row:
@@ -136,6 +120,9 @@ def main_loop():
                 if isinstance(item, cell) == True:
 
                     if item.species == "prey":
+
+                        if item not in prey_count:
+                            prey_count.append(item)
 
                         if item.gen < gen:    #  prevent applying rules to the same cell twice or more in a single generation
 
@@ -145,18 +132,21 @@ def main_loop():
                             if any(isinstance(surround, cell) for surround in surroundings) == True:    #  check if there is an instance of the same class within the surrounding area
 
                                 for surround in surroundings:    #  get the instance of the cell
-                                    mate = surround if isinstance(surround, cell) == True else None
+                                    if isinstance(surround, cell) == True:
+                                        mate = surround
 
-                                #  breed_time will get as low as 1, and only moves to 0 once a mate has been found
-                                item.breed_time = 0 if item.breed_time == 1 else item.breed_time
-                                mate.breed_time = 0 if mate.breed_time == 1 else mate.breed_time
+                                if item.gender == "female" and mate.gender == "male":
 
-                                if item.gender == "female" and mate.gender == "male" and free_space != [] and item.breed_time == 0 and mate.breed_time == 0:
+                                    #  breed_time will get as low as 1, and only moves to 0 once a mate has been found
+                                    item.breed_time = 0 if item.breed_time == 1 else item.breed_time
+                                    mate.breed_time = 0 if mate.breed_time == 1 else mate.breed_time
 
-                                    exec(spawn(environment, x, y, len_x, len_y, free_space)[int(random.choice(free_space))])    #  spawn a new fish at a random free space
+                                    if free_space != [] and item.breed_time == 0 and mate.breed_time == 0:
 
-                                    item.breed_time = 11
-                                    mate.breed_time = 10
+                                        exec(spawn(environment, x, y, len_x, len_y, free_space)[int(random.choice(free_space))])    #  spawn a new fish at a random free space
+
+                                        item.breed_time = 11
+                                        mate.breed_time = 10
 
                             if free_space != [] and item.breed_time != 0:
 
@@ -169,7 +159,8 @@ def main_loop():
 
                     elif item.species == "predator":
 
-                        print(item.hunger)
+                        if item not in predator_count:
+                            predator_count.append(item)
 
                         if item.gen < gen:
 
@@ -182,10 +173,11 @@ def main_loop():
                             if any(isinstance(surround, cell) for surround in surroundings) == True:    #  check if there is an instance of the same class within the surrounding area
 
                                 for surround in surroundings:
-                                    prey = surround if isinstance(surround, cell) == True else None
+                                    if isinstance(surround, cell) == True:
+                                        prey = surround
 
                                 if prey.species == "prey":
-                                    
+
                                     exec(move(environment, x, y, len_x, len_y, free_space)[surroundings.index(prey)])
                                     environment[y][x] = "~"
 
@@ -198,15 +190,8 @@ def main_loop():
 
                             item.hunger = item.hunger-1 if item.hunger > 0 else item.hunger
                             item.gen += 1
-                            
-                    #  update the screen
-                    time.sleep(frame_rate)
-                    print("\x1b[0;0H")    #  resets screen and moves pointer to top left
-                    print("Electric Fish // Gen: {} // Tick: {} // Size: {}x{}".format(gen, tick, len_x, len_y))
-                    for row in environment:
-                        for item in row:
-                            print(" {} ".format(item), end="")
-                        print()
+
+
 
                 x+=1
             x = 0
@@ -214,9 +199,15 @@ def main_loop():
 
         gen+=1
 
+        #  update the screen
+        print("\x1b[0;0H")    #  resets screen and moves pointer to top left
+        print("Gen: {} // Tick: {} // Size: {}x{} // Predators: {} // Prey: {}".format(gen, tick, len_x, len_y, len(predator_count), len(prey_count)))
+        for row in environment:
+            for item in row:
+                color = "\033[36m" if isinstance(item, cell) == False else "\033[33m" if item.species == "prey" else "\033[31m"    #  determine color for item
+                print(" {}{}{} ".format(color, item, "\x1b[0m"), end="")    #  print item onto same line with added color
+            print()
 
-        
 
 if __name__ == "__main__":
     main_loop()
-
