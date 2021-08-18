@@ -183,7 +183,7 @@ def main_loop():
 
                                     item.hunger += 5
 
-                            if free_space != [] and prey == None:
+                            if free_space != [] and prey is None:
 
                                 exec(move(environment, x, y, len_x, len_y, free_space)[int(random.choice(free_space))])    #  move to a random free space
                                 environment[y][x] = "~"
