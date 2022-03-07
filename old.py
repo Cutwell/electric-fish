@@ -47,22 +47,10 @@ class predator(object):
         self.stuck = False
 
     def update_surroundings(self, domain, coord):
-        if coord < 10:
-            self.surroundings[0] = "#"
-        else:
-            self.surroundings[0] = domain[coord-10]    #  above
-        if coord == 0:
-            self.surroundings[1] = "#"
-        else:
-            self.surroundings[1] = domain[coord-1]    #  left
-        if coord == 99:
-            self.surroundings[2] = "#"
-        else:
-            self.surroundings[2] = domain[coord+1]    #  right
-        if coord > 88:
-            self.surroundings[3] = "#"
-        else:
-            self.surroundings[3] = domain[coord+10]    #  below
+        self.surroundings[0] = "#" if coord < 10 else domain[coord-10]
+        self.surroundings[1] = "#" if coord == 0 else domain[coord-1]
+        self.surroundings[2] = "#" if coord == 99 else domain[coord+1]
+        self.surroundings[3] = "#" if coord > 88 else domain[coord+10]
 
 
 class prey(object):
@@ -89,23 +77,10 @@ class prey(object):
         self.stuck = False
 
     def update_surroundings(self, domain, coord):
-        if coord < 10:
-            self.surroundings[0] = "#"
-        else:
-            self.surroundings[0] = domain[coord-10]    #  above
-        if coord == 0:
-            self.surroundings[1] = "#"
-        else:
-            self.surroundings[1] = domain[coord-1]    #  left
-        if coord == 99:
-            self.surroundings[2] = "#"
-        else:
-            self.surroundings[2] = domain[coord+1]    #  right
-        if coord > 88:
-            self.surroundings[3] = "#"
-        else:
-            self.surroundings[3] = domain[coord+10]    #  below
-
+        self.surroundings[0] = "#" if coord < 10 else domain[coord-10]
+        self.surroundings[1] = "#" if coord == 0 else domain[coord-1]
+        self.surroundings[2] = "#" if coord == 99 else domain[coord+1]
+        self.surroundings[3] = "#" if coord > 88 else domain[coord+10]
         #  some quick checks
         if "" in self.surroundings:
             self.surroundings[self.surroundings.index("")] = "~"
@@ -148,7 +123,7 @@ if __name__ == "__main__":
     while True:
         time.sleep(tick)
 
-        for animal in animals.keys():
+        for animal, self_coord in animals.items():
 
             if animal.breed_time != 0:
                 animal.breed_time -= 1
@@ -161,55 +136,57 @@ if __name__ == "__main__":
 
                 for item in animal.surroundings:
                     if item == "£":
-                        if animal.trait == "run":
-                            run = {0:3, 1:2, 2:1, 3:0}
-                            move = run[animal.surroundings.index(item)]
-                        elif animal.trait == "freeze":
+                        if animal.trait == "freeze":
                             move = False
 
+                        elif animal.trait == "run":
+                            run = {0:3, 1:2, 2:1, 3:0}
+                            move = run[animal.surroundings.index(item)]
                     elif item == "$":
-
-                        self_coord = animals[animal]
 
                         #  find instance of mate
                         coords = [-10,-1,1,10]
                         if "$" in animal.surroundings:
                             mate_coord = self_coord+coords[animal.surroundings.index(item)]
                             for animal, coord in animals.items():
-                                if animal == "prey":
-                                    if coord == mate_coord:
-                                        mate = animal
+                                if animal == "prey" and coord == mate_coord:
+                                    mate = animal
 
-                        if 'mate' in vars() or 'mate' in globals():
-                            if animal.breed_time == 0 and mate.breed_time == 0:
-                                if animal.gender == "female" and animal.gender != mate.gender:
-                                    for item in animal.surroundings:
-                                        if item == "~":
-                                            coord = self_coord+coords[animal.surroundings.index(item)]
-                                            animals.update({prey(id, animal):coord})    #  inherit some parental traits
+                        if (
+                            ('mate' in vars() or 'mate' in globals())
+                            and animal.breed_time == 0
+                            and mate.breed_time == 0
+                            and animal.gender == "female"
+                            and animal.gender != mate.gender
+                        ):
+                            for item in animal.surroundings:
+                                if item == "~":
+                                    coord = self_coord+coords[animal.surroundings.index(item)]
+                                    animals.update({prey(id, animal):coord})    #  inherit some parental traits
 
-                                            #  reset the breed time for both animals
-                                            animal.breed_time = 10
-                                            mate.breed_time = 10
+                                    #  reset the breed time for both animals
+                                    animal.breed_time = 10
+                                    mate.breed_time = 10
 
 
-                free_space = []
-                for index in range(4):    #  check surroundings to find free space
-                    if animal.surroundings[index-1] == "~":
-                        free_space.append(index-1)
+                free_space = [
+                    index - 1
+                    for index in range(4)
+                    if animal.surroundings[index - 1] == "~"
+                ]
 
-                if len(free_space) == 0:
+                if not free_space:
                     stuck = True
 
-                elif len(free_space) != 0:
+                else:
                     animal.stuck = False
                     stuck = False
 
-                if animal.stuck == True and stuck == True:
+                if animal.stuck == True and stuck:
                     #  animal dies
                     pass
 
-                elif stuck == True:
+                elif stuck:
                     move = False
                     animal.stuck = True
 
@@ -235,9 +212,6 @@ if __name__ == "__main__":
                     except:
                         pass    #  cannot move to location, so remain still
 
-
-            elif animal.species == "predator":
-                pass
 
         #  update screen
         print("\x1b[0;0H")    #  resets screen and moves pointer to top left
