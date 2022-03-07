@@ -1,3 +1,4 @@
+![electric fish](assets/bg.png)
 # Electric Fish
 
 A collection of electric animal cellular automata..
